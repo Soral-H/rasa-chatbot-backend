@@ -1,16 +1,12 @@
-# Use Rasa SDK image
-FROM rasa/rasa:3.6.21
-
-# Copy everything
-COPY . /app
+FROM python:3.9.13-slim
 
 WORKDIR /app
 
-# Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+COPY . /app
 
-# Expose port for API
+# Install Rasa and dependencies
+RUN pip install rasa==3.6.21
+
 EXPOSE 5005
 
-# Run Rasa server with API and CORS
-CMD ["run", "--enable-api", "--cors", "*", "--model", "models"]
+CMD ["rasa", "run", "--enable-api", "--cors", "*", "--model", "models"]
