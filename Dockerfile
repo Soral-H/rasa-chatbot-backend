@@ -9,4 +9,4 @@ RUN pip install rasa==3.6.21
 
 EXPOSE 5005
 
-CMD ["rasa", "run", "--enable-api", "--cors", "*", "--model", "models"]
+CMD ["sh", "-c", "rasa run --enable-api --cors '*' --model models --port ${PORT:-5005}"]
