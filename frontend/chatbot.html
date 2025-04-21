@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BookBot</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="logo-container">
+        <img src="pictures\Bot.png" alt="Logo" class="logo" />
+    </div>
+    <div class="containerBot">
+        <div class="chatbox">
+            <div class="messages" id="messages"></div>
+            <div class="input-area">
+                <div id="thinkingDots">
+                    <span class="dot">.</span>
+                    <span class="dot">.</span>
+                    <span class="dot">.</span>
+                </div>
+                <input type="text" id="userInput" placeholder="Type your message..." />
+                <button id="sendButton">></button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const messagesDiv = document.getElementById('messages');
+        const userInput = document.getElementById('userInput');
+        const sendButton = document.getElementById('sendButton');
+    
+        function addMessage(content, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = sender;
+            messageDiv.style.whiteSpace = 'pre-wrap'; // Preserve whitespace
+    
+            // Create a container for images
+            const imgContainer = document.createElement('div');
+            imgContainer.style.display = 'flex'; // Use flexbox for alignment
+            imgContainer.style.flexWrap = 'wrap'; // Allow images to wrap if needed
+    
+            // Check if the content is an image URL
+            if (content.startsWith('http://') || content.startsWith('https://')) {
+                const img = document.createElement('img'); // Create an img element
+                img.src = content; // Set the src to the image URL
+                img.style.maxWidth = '100%'; // Set a max width for images
+                img.style.height = 'auto'; // Maintain aspect ratio
+                img.style.marginRight = '10px'; // Add some space between images
+                img.style.marginTop = '10px';
+                imgContainer.appendChild(img); // Append the image to the container
+            } else {
+                const textNode = document.createTextNode(content); // Create a text node
+                messageDiv.appendChild(textNode); // Append the text node to the message div
+            }
+    
+            messageDiv.appendChild(imgContainer); // Append the image container to the message div
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight; // Scroll to the bottom
+        }
+    
+        sendButton.addEventListener('click', async () => {
+            const userMessage = userInput.value;
+            if (userMessage.trim() !== '') {
+                addMessage(userMessage, 'user');
+                userInput.value = '';
+    
+                thinkingDots.style.display = 'block'; // Show thinking dots
+                
+                // Send user message to Rasa server
+                const response = await fetch('http://localhost:5005/webhooks/rest/webhook', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ sender: 'user', message: userMessage })
+                });
+    
+                const data = await response.json();
+                
+                
+                const imagePromises = []; // Array to hold image promises
+                const imgContainer = document.createElement('div'); // Create a container for all images
+                imgContainer.style.display = 'flex'; // Use flexbox for alignment
+                imgContainer.style.flexWrap = 'wrap'; // Allow images to wrap if needed
+    
+                data.forEach(msg => {
+                    if (msg.image) {
+                        const imgPromise = new Promise((resolve) => {
+                            const img = new Image();
+                            img.src = msg.image;
+                            img.onload = () => {
+                                const imgElement = document.createElement('img'); // Create an img element
+                                imgElement.src = msg.image; // Set the src to the image URL
+                                imgElement.style.maxWidth = '100%'; // Set a max width for images
+                                imgElement.style.height = 'auto'; // Maintain aspect ratio
+                                imgElement.style.marginRight = '10px'; // Add some space between images
+                                imgElement.style.marginTop = '10px';
+                                imgContainer.appendChild(imgElement); // Append the image to the container
+                                resolve();
+                            };
+                        });
+                        imagePromises.push(imgPromise); // Add the promise to the array
+                    } else {
+                        addMessage(msg.text, 'bot'); // Use the text content
+                    }
+                });
+    
+                // Wait for all images to load
+                await Promise.all(imagePromises);
+                // Append the image container to the last message div
+                const lastMessageDiv = messagesDiv.lastChild;
+                lastMessageDiv.appendChild(imgContainer);
+            }
+            messagesDiv.scrollTop = messagesDiv.scrollHeight; // Scroll to the bottom
+            thinkingDots.style.display = 'none'; // Hide thinking dots
+        });
+    
+        userInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                sendButton.click();
+            }
+        });
+    </script>
+</body>
+</html>
