@@ -1,16 +1,14 @@
 import os
 import socket
 from threading import Thread
-from flask import Flask, jsonify
-import subprocess
+from flask import Flask
+import random
 
-# 1. Health Check Server
 app = Flask(__name__)
 @app.route('/')
 def health_check():
-    return jsonify({"status": "OK", "service": "Rasa"}), 200
+    return "OK", 200
 
-# 2. Port Holder Class
 class PortHolder:
     def __init__(self, port):
         self.port = port
@@ -20,19 +18,20 @@ class PortHolder:
         self.socket.listen(1)
         print(f"🔒 Port {self.port} permanently held open")
 
-# 3. Rasa Launcher
-def start_rasa():
-    cmd = f"rasa run --enable-api --cors '*' --port {os.getenv('PORT', '5005')}"
-    subprocess.run(cmd, shell=True)
+def start_flask():
+    port = int(os.getenv("FLASK_PORT", random.randint(10001, 20000)))  # Dynamic fallback
+    try:
+        app.run(host='0.0.0.0', port=port)
+    except OSError:
+        print(f"⚠️ Port {port} occupied, retrying...")
+        start_flask()  # Recursive retry
 
 if __name__ == "__main__":
-    # Hold both ports open
-    rasa_port = PortHolder(int(os.getenv("PORT", 5005)))
-    health_port = PortHolder(10000)  # Render's scanner port
+    # Hold Rasa port
+    PortHolder(int(os.getenv("PORT", 5005)))
     
-    # Start services
-    Thread(target=lambda: app.run(host='0.0.0.0', port=10000)).start()
-    Thread(target=start_rasa).start()
+    # Start Flask on dynamic port
+    Thread(target=start_flask).start()
     
-    # Keep alive
-    while True: pass
+    # Start Rasa
+    os.system(f"rasa run --enable-api --cors '*' --port {os.getenv('PORT', '5005')}")
