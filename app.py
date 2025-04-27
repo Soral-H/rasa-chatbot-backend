@@ -4,7 +4,7 @@ import subprocess
 
 def run_rasa():
     # Get the port from the environment or default to 5005
-    port = os.environ.get("PORT", 5005)
+    port = int(os.environ.get("PORT", 5005))
 
     # Construct the rasa run command
     command = [
