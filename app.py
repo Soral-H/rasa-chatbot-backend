@@ -1,6 +1,20 @@
 import os
-from rasa import run
+import subprocess
+
+def run_rasa():
+    # Get the port from the environment variable or default to 5005
+    port = os.environ.get("PORT", 5005)
+    
+    # Construct the command to run Rasa
+    command = [
+        "rasa", "run",
+        "--enable-api",
+        "--cors", "*",
+        "-p", str(port)
+    ]
+    
+    # Run the command
+    subprocess.run(command)
 
 if __name__ == "__main__":
-    port = os.environ.get("PORT", 5005)  # Default to 5005 if PORT is not set
-    run(port=port)
+    run_rasa()
